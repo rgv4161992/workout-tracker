@@ -29,6 +29,13 @@
             margin-bottom: 15px;
         }
         
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
         label {
             display: block;
             margin-bottom: 5px;
@@ -107,6 +114,14 @@
         .error {
             background-color: #f8d7da;
             color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
             padding: 10px;
             border-radius: 4px;
             margin-bottom: 15px;
@@ -329,6 +344,28 @@
         .tab-content.active {
             display: block;
         }
+        
+        .measurements-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .measurements-table th,
+        .measurements-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .measurements-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .measurements-table tr:hover {
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 <body>
@@ -361,6 +398,7 @@
         <div class="tab-container">
             <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
             <button class="tab" onclick="showTab('analytics')">Analytics</button>
+            <button class="tab" onclick="showTab('body')">Body Tracking</button>
             <button class="tab" onclick="showTab('history')">History</button>
         </div>
         
@@ -437,8 +475,9 @@
                 
                 <div class="form-group">
                     <label>Exercise:</label>
-                    <input type="text" id="exercise" placeholder="e.g., Bench Press" list="exerciseList">
+                    <input type="text" id="exercise" placeholder="e.g., DB Bench Press" list="exerciseList">
                     <datalist id="exerciseList"></datalist>
+                    <small style="color: #666;">Tip: Use prefixes like "DB" (dumbbell), "BB" (barbell), "BW" (bodyweight)</small>
                 </div>
                 
                 <div class="form-group">
@@ -449,6 +488,7 @@
                 <div class="form-group">
                     <label>Weight (lbs):</label>
                     <input type="number" id="weight" placeholder="e.g., 135">
+                    <small style="color: #666;">For dumbbells: enter total weight (both dumbbells combined)</small>
                 </div>
                 
                 <button onclick="logSet()">Log Set</button>
@@ -531,6 +571,142 @@
             </div>
         </div>
         
+        <!-- Body Tracking Tab -->
+        <div id="bodyTab" class="tab-content">
+            <div class="analytics-dashboard">
+                <h2>Body Metrics</h2>
+                
+                <!-- Quick Weigh-In -->
+                <div class="input-section">
+                    <h3>Quick Weigh-In</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="date" id="weighInDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Bodyweight (lbs):</label>
+                            <input type="number" step="0.1" id="quickBodyweight" placeholder="e.g., 185.5">
+                        </div>
+                    </div>
+                    <button onclick="submitQuickWeighIn()">Log Weight</button>
+                    <div id="weighInMessage"></div>
+                </div>
+                
+                <!-- Full Measurements -->
+                <div class="input-section">
+                    <h3>Full Body Measurements</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="date" id="measurementDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Bodyweight (lbs):</label>
+                            <input type="number" step="0.1" id="bodyweight" placeholder="e.g., 185.5">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Waist (inches):</label>
+                        <input type="number" step="0.1" id="waist" placeholder="e.g., 34.0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Chest (inches):</label>
+                        <input type="number" step="0.1" id="chest" placeholder="e.g., 42.0">
+                    </div>
+                    
+                    <h4 style="margin-top: 20px;">Arms</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Left Arm (inches):</label>
+                            <input type="number" step="0.1" id="armsLeft" placeholder="e.g., 15.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Right Arm (inches):</label>
+                            <input type="number" step="0.1" id="armsRight" placeholder="e.g., 15.5">
+                        </div>
+                    </div>
+                    
+                    <h4>Thighs</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Left Thigh (inches):</label>
+                            <input type="number" step="0.1" id="thighsLeft" placeholder="e.g., 24.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Right Thigh (inches):</label>
+                            <input type="number" step="0.1" id="thighsRight" placeholder="e.g., 24.0">
+                        </div>
+                    </div>
+                    
+                    <h4>Calves</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Left Calf (inches):</label>
+                            <input type="number" step="0.1" id="calvesLeft" placeholder="e.g., 15.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Right Calf (inches):</label>
+                            <input type="number" step="0.1" id="calvesRight" placeholder="e.g., 15.0">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notes (optional):</label>
+                        <input type="text" id="bodyNotes" placeholder="e.g., measured in morning before breakfast">
+                    </div>
+                    
+                    <button onclick="submitFullMeasurements()">Log All Measurements</button>
+                    <div id="measurementMessage"></div>
+                </div>
+                
+                <!-- Body Stats -->
+                <h2 style="margin-top: 40px;">Progress Tracking</h2>
+                <div class="analytics-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Current Weight</div>
+                        <div class="stat-value" id="currentWeight">--</div>
+                        <div class="stat-change" id="weightChange"></div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Starting Weight</div>
+                        <div class="stat-value" id="startingWeight">--</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Total Change</div>
+                        <div class="stat-value" id="totalWeightChange">--</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Measurements Logged</div>
+                        <div class="stat-value" id="totalMeasurements">--</div>
+                    </div>
+                </div>
+                
+                <!-- Weight Chart -->
+                <div class="chart-container">
+                    <h3>Bodyweight Trend (Last 12 Weeks)</h3>
+                    <canvas id="weightChart"></canvas>
+                </div>
+                
+                <!-- Measurements Chart -->
+                <div class="chart-container">
+                    <h3>Body Measurements Trend</h3>
+                    <canvas id="measurementsChart"></canvas>
+                </div>
+                
+                <!-- Measurements History -->
+                <div class="input-section">
+                    <h3>Measurement History</h3>
+                    <div id="measurementsHistory" class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
         <!-- History Tab -->
         <div id="historyTab" class="tab-content">
             <div class="workout-list">
@@ -550,10 +726,18 @@
         let todayCheckIn = null;
         let recoveryChart = null;
         let volumeChart = null;
+        let weightChart = null;
+        let measurementsChart = null;
+        
+        // Set default dates to today
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('weighInDate').value = today;
+            document.getElementById('measurementDate').value = today;
+        }
         
         // Tab switching
         function showTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -561,13 +745,13 @@
                 tab.classList.remove('active');
             });
             
-            // Show selected tab
             document.getElementById(tabName + 'Tab').classList.add('active');
             event.target.classList.add('active');
             
-            // Load analytics if switching to analytics tab
             if (tabName === 'analytics') {
                 loadAnalytics();
+            } else if (tabName === 'body') {
+                loadBodyMetrics();
             }
         }
         
@@ -630,6 +814,7 @@
             document.getElementById('appSection').style.display = 'block';
             document.getElementById('userEmail').textContent = currentUser.email;
             
+            setDefaultDates();
             await loadTodayCheckIn();
             loadExercises();
             loadWorkouts();
@@ -764,6 +949,349 @@
             dashboard.style.display = 'block';
         }
         
+        // Submit quick weigh-in
+        async function submitQuickWeighIn() {
+            const date = document.getElementById('weighInDate').value;
+            const bodyweight = parseFloat(document.getElementById('quickBodyweight').value);
+            
+            if (!date || !bodyweight) {
+                document.getElementById('weighInMessage').innerHTML = '<div class="error">Please enter date and weight</div>';
+                return;
+            }
+            
+            const { data, error } = await sb
+                .from('body_metrics')
+                .upsert([{
+                    user_id: currentUser.id,
+                    date: date,
+                    bodyweight: bodyweight
+                }], {
+                    onConflict: 'user_id,date'
+                })
+                .select()
+                .single();
+            
+            if (error) {
+                document.getElementById('weighInMessage').innerHTML = '<div class="error">' + error.message + '</div>';
+            } else {
+                document.getElementById('weighInMessage').innerHTML = '<div class="success">Weight logged successfully!</div>';
+                document.getElementById('quickBodyweight').value = '';
+                setTimeout(() => {
+                    document.getElementById('weighInMessage').innerHTML = '';
+                }, 3000);
+                loadBodyMetrics();
+            }
+        }
+        
+        // Submit full measurements
+        async function submitFullMeasurements() {
+            const date = document.getElementById('measurementDate').value;
+            const bodyweight = parseFloat(document.getElementById('bodyweight').value) || null;
+            const waist = parseFloat(document.getElementById('waist').value) || null;
+            const chest = parseFloat(document.getElementById('chest').value) || null;
+            const armsLeft = parseFloat(document.getElementById('armsLeft').value) || null;
+            const armsRight = parseFloat(document.getElementById('armsRight').value) || null;
+            const thighsLeft = parseFloat(document.getElementById('thighsLeft').value) || null;
+            const thighsRight = parseFloat(document.getElementById('thighsRight').value) || null;
+            const calvesLeft = parseFloat(document.getElementById('calvesLeft').value) || null;
+            const calvesRight = parseFloat(document.getElementById('calvesRight').value) || null;
+            const notes = document.getElementById('bodyNotes').value || null;
+            
+            if (!date) {
+                document.getElementById('measurementMessage').innerHTML = '<div class="error">Please select a date</div>';
+                return;
+            }
+            
+            const { data, error } = await sb
+                .from('body_metrics')
+                .upsert([{
+                    user_id: currentUser.id,
+                    date: date,
+                    bodyweight: bodyweight,
+                    waist: waist,
+                    chest: chest,
+                    arms_left: armsLeft,
+                    arms_right: armsRight,
+                    thighs_left: thighsLeft,
+                    thighs_right: thighsRight,
+                    calves_left: calvesLeft,
+                    calves_right: calvesRight,
+                    notes: notes
+                }], {
+                    onConflict: 'user_id,date'
+                })
+                .select()
+                .single();
+            
+            if (error) {
+                document.getElementById('measurementMessage').innerHTML = '<div class="error">' + error.message + '</div>';
+            } else {
+                document.getElementById('measurementMessage').innerHTML = '<div class="success">Measurements logged successfully!</div>';
+                
+                // Clear form
+                document.getElementById('bodyweight').value = '';
+                document.getElementById('waist').value = '';
+                document.getElementById('chest').value = '';
+                document.getElementById('armsLeft').value = '';
+                document.getElementById('armsRight').value = '';
+                document.getElementById('thighsLeft').value = '';
+                document.getElementById('thighsRight').value = '';
+                document.getElementById('calvesLeft').value = '';
+                document.getElementById('calvesRight').value = '';
+                document.getElementById('bodyNotes').value = '';
+                
+                setTimeout(() => {
+                    document.getElementById('measurementMessage').innerHTML = '';
+                }, 3000);
+                
+                loadBodyMetrics();
+            }
+        }
+        
+        // Load body metrics
+        async function loadBodyMetrics() {
+            const today = new Date();
+            const twelveWeeksAgo = new Date(today);
+            twelveWeeksAgo.setDate(today.getDate() - 84);
+            
+            const { data: metrics, error } = await sb
+                .from('body_metrics')
+                .select('*')
+                .gte('date', twelveWeeksAgo.toISOString().split('T')[0])
+                .order('date', { ascending: true });
+            
+            if (!metrics || metrics.length === 0) {
+                document.getElementById('currentWeight').textContent = '--';
+                document.getElementById('startingWeight').textContent = '--';
+                document.getElementById('totalWeightChange').textContent = '--';
+                document.getElementById('totalMeasurements').textContent = '0';
+                document.getElementById('measurementsHistory').innerHTML = '<p>No measurements logged yet.</p>';
+                return;
+            }
+            
+            // Get all-time metrics for starting weight
+            const { data: allMetrics } = await sb
+                .from('body_metrics')
+                .select('*')
+                .order('date', { ascending: true });
+            
+            // Current weight (most recent)
+            const metricsWithWeight = metrics.filter(m => m.bodyweight);
+            if (metricsWithWeight.length > 0) {
+                const current = metricsWithWeight[metricsWithWeight.length - 1];
+                document.getElementById('currentWeight').textContent = current.bodyweight + ' lbs';
+                
+                // Weight change
+                if (metricsWithWeight.length > 1) {
+                    const previous = metricsWithWeight[metricsWithWeight.length - 2];
+                    const change = current.bodyweight - previous.bodyweight;
+                    const changeText = (change > 0 ? '+' : '') + change.toFixed(1) + ' lbs from last entry';
+                    const changeEl = document.getElementById('weightChange');
+                    changeEl.textContent = changeText;
+                    changeEl.className = 'stat-change ' + (change <= 0 ? 'positive' : 'negative');
+                }
+            }
+            
+            // Starting weight (first entry ever)
+            const allWithWeight = allMetrics.filter(m => m.bodyweight);
+            if (allWithWeight.length > 0) {
+                const first = allWithWeight[0];
+                document.getElementById('startingWeight').textContent = first.bodyweight + ' lbs';
+                
+                // Total change
+                if (metricsWithWeight.length > 0) {
+                    const current = metricsWithWeight[metricsWithWeight.length - 1];
+                    const totalChange = current.bodyweight - first.bodyweight;
+                    const totalChangePercent = ((totalChange / first.bodyweight) * 100).toFixed(1);
+                    document.getElementById('totalWeightChange').textContent = (totalChange > 0 ? '+' : '') + totalChange.toFixed(1) + ' lbs (' + totalChangePercent + '%)';
+                }
+            }
+            
+            document.getElementById('totalMeasurements').textContent = allMetrics.length;
+            
+            // Draw charts
+            drawWeightChart(metricsWithWeight);
+            drawMeasurementsChart(metrics);
+            displayMeasurementsHistory(allMetrics);
+        }
+        
+        // Draw weight chart
+        function drawWeightChart(metrics) {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            
+            if (weightChart) {
+                weightChart.destroy();
+            }
+            
+            if (metrics.length === 0) {
+                return;
+            }
+            
+            const labels = metrics.map(m => new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const data = metrics.map(m => m.bodyweight);
+            
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Bodyweight (lbs)',
+                        data: data,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Draw measurements chart
+        function drawMeasurementsChart(metrics) {
+            const ctx = document.getElementById('measurementsChart').getContext('2d');
+            
+            if (measurementsChart) {
+                measurementsChart.destroy();
+            }
+            
+            // Filter to only metrics with at least one measurement
+            const metricsWithData = metrics.filter(m => 
+                m.waist || m.chest || m.arms_left || m.arms_right || 
+                m.thighs_left || m.thighs_right || m.calves_left || m.calves_right
+            );
+            
+            if (metricsWithData.length === 0) {
+                return;
+            }
+            
+            const labels = metricsWithData.map(m => new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            const datasets = [];
+            
+            // Add datasets for each measurement
+            if (metricsWithData.some(m => m.waist)) {
+                datasets.push({
+                    label: 'Waist',
+                    data: metricsWithData.map(m => m.waist),
+                    borderColor: '#dc3545',
+                    backgroundColor: 'transparent'
+                });
+            }
+            
+            if (metricsWithData.some(m => m.chest)) {
+                datasets.push({
+                    label: 'Chest',
+                    data: metricsWithData.map(m => m.chest),
+                    borderColor: '#28a745',
+                    backgroundColor: 'transparent'
+                });
+            }
+            
+            if (metricsWithData.some(m => m.arms_left || m.arms_right)) {
+                datasets.push({
+                    label: 'Arms (avg)',
+                    data: metricsWithData.map(m => {
+                        if (m.arms_left && m.arms_right) return (m.arms_left + m.arms_right) / 2;
+                        return m.arms_left || m.arms_right;
+                    }),
+                    borderColor: '#ffc107',
+                    backgroundColor: 'transparent'
+                });
+            }
+            
+            if (metricsWithData.some(m => m.thighs_left || m.thighs_right)) {
+                datasets.push({
+                    label: 'Thighs (avg)',
+                    data: metricsWithData.map(m => {
+                        if (m.thighs_left && m.thighs_right) return (m.thighs_left + m.thighs_right) / 2;
+                        return m.thighs_left || m.thighs_right;
+                    }),
+                    borderColor: '#17a2b8',
+                    backgroundColor: 'transparent'
+                });
+            }
+            
+            if (metricsWithData.some(m => m.calves_left || m.calves_right)) {
+                datasets.push({
+                    label: 'Calves (avg)',
+                    data: metricsWithData.map(m => {
+                        if (m.calves_left && m.calves_right) return (m.calves_left + m.calves_right) / 2;
+                        return m.calves_left || m.calves_right;
+                    }),
+                    borderColor: '#6610f2',
+                    backgroundColor: 'transparent'
+                });
+            }
+            
+            measurementsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Display measurements history
+        function displayMeasurementsHistory(metrics) {
+            const historyDiv = document.getElementById('measurementsHistory');
+            
+            if (metrics.length === 0) {
+                historyDiv.innerHTML = '<p>No measurements logged yet.</p>';
+                return;
+            }
+            
+            let html = '<table class="measurements-table">';
+            html += '<thead><tr>';
+            html += '<th>Date</th>';
+            html += '<th>Weight</th>';
+            html += '<th>Waist</th>';
+            html += '<th>Chest</th>';
+            html += '<th>Arms (L/R)</th>';
+            html += '<th>Thighs (L/R)</th>';
+            html += '<th>Calves (L/R)</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            metrics.reverse().forEach(m => {
+                html += '<tr>';
+                html += '<td>' + new Date(m.date).toLocaleDateString() + '</td>';
+                html += '<td>' + (m.bodyweight ? m.bodyweight + ' lbs' : '--') + '</td>';
+                html += '<td>' + (m.waist ? m.waist + '"' : '--') + '</td>';
+                html += '<td>' + (m.chest ? m.chest + '"' : '--') + '</td>';
+                html += '<td>' + (m.arms_left || m.arms_right ? (m.arms_left || '--') + ' / ' + (m.arms_right || '--') : '--') + '</td>';
+                html += '<td>' + (m.thighs_left || m.thighs_right ? (m.thighs_left || '--') + ' / ' + (m.thighs_right || '--') : '--') + '</td>';
+                html += '<td>' + (m.calves_left || m.calves_right ? (m.calves_left || '--') + ' / ' + (m.calves_right || '--') : '--') + '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            historyDiv.innerHTML = html;
+        }
+        
         // Load analytics
         async function loadAnalytics() {
             await loadRecoveryAnalytics();
@@ -778,7 +1306,6 @@
             const sevenDaysAgo = new Date(today);
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             
-            // Get all check-ins from last 30 days
             const { data: checkins, error } = await sb
                 .from('daily_checkins')
                 .select('*')
@@ -793,12 +1320,10 @@
                 return;
             }
             
-            // Current recovery (today's check-in)
             const todayCheckin = checkins.find(c => c.date === today.toISOString().split('T')[0]);
             if (todayCheckin) {
                 document.getElementById('currentRecovery').textContent = Math.round(todayCheckin.recovery_score);
                 
-                // Compare to yesterday
                 const yesterday = new Date(today);
                 yesterday.setDate(yesterday.getDate() - 1);
                 const yesterdayCheckin = checkins.find(c => c.date === yesterday.toISOString().split('T')[0]);
@@ -813,25 +1338,19 @@
                 document.getElementById('currentRecovery').textContent = '--';
             }
             
-            // 7-day average
             const last7Days = checkins.filter(c => new Date(c.date) >= sevenDaysAgo);
             if (last7Days.length > 0) {
                 const avg7 = last7Days.reduce((sum, c) => sum + c.recovery_score, 0) / last7Days.length;
                 document.getElementById('weekAvgRecovery').textContent = Math.round(avg7);
             }
             
-            // 30-day average
             const avg30 = checkins.reduce((sum, c) => sum + c.recovery_score, 0) / checkins.length;
             document.getElementById('monthAvgRecovery').textContent = Math.round(avg30);
-            
-            // Check-in streak
             document.getElementById('checkinStreak').textContent = checkins.length;
             
-            // Draw recovery chart
             drawRecoveryChart(checkins);
         }
         
-        // Draw recovery chart
         function drawRecoveryChart(checkins) {
             const ctx = document.getElementById('recoveryChart').getContext('2d');
             
@@ -866,19 +1385,13 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value;
-                                }
-                            }
+                            max: 100
                         }
                     }
                 }
             });
         }
         
-        // Load training analytics
         async function loadTrainingAnalytics() {
             const today = new Date();
             const startOfWeek = new Date(today);
@@ -886,7 +1399,6 @@
             const startOfLastWeek = new Date(startOfWeek);
             startOfLastWeek.setDate(startOfWeek.getDate() - 7);
             
-            // Get this week's sessions and sets
             const { data: thisWeekSessions, error: weekError } = await sb
                 .from('workout_sessions')
                 .select(`
@@ -902,7 +1414,6 @@
                 .order('date', { ascending: false });
             
             if (thisWeekSessions && thisWeekSessions.length > 0) {
-                // Calculate this week's volume
                 let weekVolume = 0;
                 let weekSets = 0;
                 thisWeekSessions.forEach(session => {
@@ -918,7 +1429,6 @@
                 document.getElementById('weekWorkouts').textContent = thisWeekSessions.length;
                 document.getElementById('weekSets').textContent = weekSets;
                 
-                // Get last week's volume for comparison
                 const { data: lastWeekSessions } = await sb
                     .from('workout_sessions')
                     .select(`
@@ -953,14 +1463,10 @@
                 document.getElementById('weekSets').textContent = '0';
             }
             
-            // Load PRs
             await loadPRs();
-            
-            // Load volume chart (last 8 weeks)
             await loadVolumeChart();
         }
         
-        // Load PRs
         async function loadPRs() {
             const { data: sets, error } = await sb
                 .from('sets')
@@ -982,7 +1488,6 @@
                 return;
             }
             
-            // Group by exercise and find max weight
             const prsByExercise = {};
             sets.forEach(set => {
                 const exerciseName = set.exercises.name;
@@ -995,7 +1500,6 @@
                 }
             });
             
-            // Display PRs
             let prHtml = '<div class="analytics-grid">';
             Object.keys(prsByExercise).forEach(exercise => {
                 const pr = prsByExercise[exercise];
@@ -1013,11 +1517,10 @@
             document.getElementById('totalPRs').textContent = Object.keys(prsByExercise).length;
         }
         
-        // Load volume chart (last 8 weeks)
         async function loadVolumeChart() {
             const today = new Date();
             const eightWeeksAgo = new Date(today);
-            eightWeeksAgo.setDate(today.getDate() - 56); // 8 weeks
+            eightWeeksAgo.setDate(today.getDate() - 56);
             
             const { data: sessions, error } = await sb
                 .from('workout_sessions')
@@ -1035,7 +1538,6 @@
                 return;
             }
             
-            // Group by week
             const weeklyVolume = {};
             sessions.forEach(session => {
                 const date = new Date(session.date);
@@ -1097,7 +1599,6 @@
             });
         }
         
-        // Get or create today's workout session
         async function getTodaySession() {
             const today = new Date().toISOString().split('T')[0];
             
@@ -1123,7 +1624,6 @@
             return newSession;
         }
         
-        // Get or create exercise
         async function getExercise(exerciseName) {
             const { data: existing, error: fetchError } = await sb
                 .from('exercises')
@@ -1147,7 +1647,6 @@
             return newExercise;
         }
         
-        // Load exercise list for autocomplete
         async function loadExercises() {
             const { data, error } = await sb
                 .from('exercises')
@@ -1165,7 +1664,6 @@
             }
         }
         
-        // Log a set
         async function logSet() {
             const exerciseName = document.getElementById('exercise').value;
             const reps = document.getElementById('reps').value;
@@ -1217,7 +1715,6 @@
             }
         }
         
-        // Load and display workouts
         async function loadWorkouts() {
             const historyDiv = document.getElementById('workoutHistory');
             historyDiv.innerHTML = '<div class="loading">Loading...</div>';
@@ -1275,7 +1772,6 @@
             }
         }
         
-        // Delete a set
         async function deleteSet(setId) {
             if (!confirm('Delete this set?')) return;
             
@@ -1291,7 +1787,6 @@
             }
         }
         
-        // Initialize app
         checkAuth();
     </script>
 </body>
