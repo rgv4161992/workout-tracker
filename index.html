@@ -118,6 +118,118 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        /* Recovery Dashboard Styles */
+        .recovery-dashboard {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .recovery-status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .recovery-status.green {
+            background-color: #d4edda;
+            border: 2px solid #28a745;
+        }
+        
+        .recovery-status.yellow {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        .recovery-status.red {
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        
+        .recovery-status h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        .recovery-score {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .recovery-details {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        
+        .recovery-metric {
+            text-align: center;
+        }
+        
+        .recovery-metric .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .recovery-metric .label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .recommendations {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .recommendations ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .recommendations li {
+            margin: 5px 0;
+        }
+        
+        /* Check-in form styles */
+        .soreness-scale {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .soreness-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .soreness-option:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        
+        .soreness-option input[type="radio"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        
+        .soreness-option.selected {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
     </style>
 </head>
 <body>
@@ -139,13 +251,79 @@
         <div id="authError"></div>
     </div>
     
-    <!-- Workout Logging Section (hidden until signed in) -->
+    <!-- Main App Section (hidden until signed in) -->
     <div id="appSection" style="display: none;">
         <div style="text-align: right; margin-bottom: 10px;">
             <span id="userEmail"></span>
             <button onclick="signOut()">Sign Out</button>
         </div>
         
+        <!-- Daily Check-In Section -->
+        <div class="input-section" id="checkInSection" style="display: none;">
+            <h2>Daily Check-In - <span id="checkInDate"></span></h2>
+            
+            <div class="form-group">
+                <label>Oura Readiness Score (0-100):</label>
+                <input type="number" id="ouraReadiness" min="0" max="100" placeholder="85">
+                <small style="color: #666;">Check your Oura app for today's readiness score</small>
+            </div>
+            
+            <div class="form-group">
+                <label>How sore are you today?</label>
+                <div class="soreness-scale">
+                    <label class="soreness-option">
+                        <input type="radio" name="soreness" value="0">
+                        <span><strong>0 - Cripplingly sore</strong> (can barely move)</span>
+                    </label>
+                    <label class="soreness-option">
+                        <input type="radio" name="soreness" value="25">
+                        <span><strong>25 - Very sore</strong> (hard to do daily tasks)</span>
+                    </label>
+                    <label class="soreness-option">
+                        <input type="radio" name="soreness" value="50">
+                        <span><strong>50 - Moderately sore</strong> (noticeable but manageable)</span>
+                    </label>
+                    <label class="soreness-option">
+                        <input type="radio" name="soreness" value="75">
+                        <span><strong>75 - Slightly sore</strong> (barely there)</span>
+                    </label>
+                    <label class="soreness-option">
+                        <input type="radio" name="soreness" value="100">
+                        <span><strong>100 - Feel great</strong> (no soreness at all)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button onclick="submitCheckIn()">Submit Check-In</button>
+            <div id="checkInError"></div>
+        </div>
+        
+        <!-- Recovery Dashboard -->
+        <div class="recovery-dashboard" id="recoveryDashboard" style="display: none;">
+            <div class="recovery-status" id="recoveryStatus">
+                <h2 id="recoveryStatusText">Recovery Status</h2>
+                <div class="recovery-score" id="recoveryScoreDisplay">--</div>
+                <p>Recovery Score</p>
+            </div>
+            
+            <div class="recovery-details">
+                <div class="recovery-metric">
+                    <div class="value" id="ouraDisplay">--</div>
+                    <div class="label">Oura Readiness</div>
+                </div>
+                <div class="recovery-metric">
+                    <div class="value" id="sorenessDisplay">--</div>
+                    <div class="label">Soreness Score</div>
+                </div>
+            </div>
+            
+            <div class="recommendations" id="recommendations">
+                <h3>Training Recommendations</h3>
+                <ul id="recommendationsList"></ul>
+            </div>
+        </div>
+        
+        <!-- Workout Logging Section -->
         <div class="input-section">
             <h2>Log Set</h2>
             
@@ -169,6 +347,7 @@
             <div id="logError"></div>
         </div>
         
+        <!-- Workout History -->
         <div class="workout-list">
             <h2>Workout History</h2>
             <div id="workoutHistory" class="loading">Loading...</div>
@@ -182,7 +361,7 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         let currentUser = null;
-        let currentSession = null;
+        let todayCheckIn = null;
         
         // Check if user is already signed in
         async function checkAuth() {
@@ -232,25 +411,161 @@
         async function signOut() {
             await sb.auth.signOut();
             currentUser = null;
-            currentSession = null;
+            todayCheckIn = null;
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('appSection').style.display = 'none';
         }
         
         // Show app after successful auth
-        function showApp() {
+        async function showApp() {
             document.getElementById('authSection').style.display = 'none';
             document.getElementById('appSection').style.display = 'block';
             document.getElementById('userEmail').textContent = currentUser.email;
+            
+            await loadTodayCheckIn();
             loadExercises();
             loadWorkouts();
+        }
+        
+        // Load today's check-in
+        async function loadTodayCheckIn() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const { data, error } = await sb
+                .from('daily_checkins')
+                .select('*')
+                .eq('date', today)
+                .single();
+            
+            if (data) {
+                // Already checked in today
+                todayCheckIn = data;
+                displayRecoveryDashboard(data);
+            } else {
+                // Need to check in
+                showCheckInForm();
+            }
+        }
+        
+        // Show check-in form
+        function showCheckInForm() {
+            const today = new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            document.getElementById('checkInDate').textContent = today;
+            document.getElementById('checkInSection').style.display = 'block';
+            document.getElementById('recoveryDashboard').style.display = 'none';
+            
+            // Add click handlers for soreness options
+            document.querySelectorAll('.soreness-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.soreness-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                });
+            });
+        }
+        
+        // Submit check-in
+        async function submitCheckIn() {
+            const ouraReadiness = parseInt(document.getElementById('ouraReadiness').value);
+            const sorenessRadio = document.querySelector('input[name="soreness"]:checked');
+            
+            if (!ouraReadiness || !sorenessRadio) {
+                document.getElementById('checkInError').innerHTML = '<div class="error">Please fill in all fields</div>';
+                return;
+            }
+            
+            const sorenessScore = parseInt(sorenessRadio.value);
+            const recoveryScore = (ouraReadiness * 0.6) + (sorenessScore * 0.4);
+            const today = new Date().toISOString().split('T')[0];
+            
+            const { data, error } = await sb
+                .from('daily_checkins')
+                .insert([{
+                    user_id: currentUser.id,
+                    date: today,
+                    oura_readiness: ouraReadiness,
+                    soreness_score: sorenessScore,
+                    recovery_score: recoveryScore
+                }])
+                .select()
+                .single();
+            
+            if (error) {
+                document.getElementById('checkInError').innerHTML = '<div class="error">' + error.message + '</div>';
+            } else {
+                todayCheckIn = data;
+                document.getElementById('checkInSection').style.display = 'none';
+                displayRecoveryDashboard(data);
+            }
+        }
+        
+        // Display recovery dashboard
+        function displayRecoveryDashboard(checkIn) {
+            const dashboard = document.getElementById('recoveryDashboard');
+            const status = document.getElementById('recoveryStatus');
+            const score = Math.round(checkIn.recovery_score);
+            
+            // Set recovery score
+            document.getElementById('recoveryScoreDisplay').textContent = score;
+            document.getElementById('ouraDisplay').textContent = checkIn.oura_readiness;
+            document.getElementById('sorenessDisplay').textContent = checkIn.soreness_score;
+            
+            // Determine status color and recommendations
+            let statusClass, statusText, recommendations;
+            
+            if (score >= 80) {
+                statusClass = 'green';
+                statusText = '🟢 READY TO TRAIN';
+                recommendations = [
+                    'Your body is well recovered',
+                    'Train as planned today',
+                    'You can push intensity if you feel good',
+                    'Keep volume similar to recent sessions'
+                ];
+            } else if (score >= 60) {
+                statusClass = 'yellow';
+                statusText = '🟡 PARTIAL RECOVERY';
+                recommendations = [
+                    'Your body is moderately recovered',
+                    'Reduce training volume by 20-30%',
+                    'Focus on technique over heavy weight',
+                    'Consider an easier session or active recovery'
+                ];
+            } else {
+                statusClass = 'red';
+                statusText = '🔴 NOT RECOVERED';
+                recommendations = [
+                    'Your body needs more rest',
+                    'Take a rest day or do very light activity only',
+                    'Focus on sleep, nutrition, and hydration',
+                    'Do not push through - this is when injuries happen'
+                ];
+            }
+            
+            // Update UI
+            status.className = 'recovery-status ' + statusClass;
+            document.getElementById('recoveryStatusText').textContent = statusText;
+            
+            const recList = document.getElementById('recommendationsList');
+            recList.innerHTML = '';
+            recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                recList.appendChild(li);
+            });
+            
+            dashboard.style.display = 'block';
         }
         
         // Get or create today's workout session
         async function getTodaySession() {
             const today = new Date().toISOString().split('T')[0];
             
-            // Check if session exists for today
             const { data: existing, error: fetchError } = await sb
                 .from('workout_sessions')
                 .select('*')
@@ -261,7 +576,6 @@
                 return existing;
             }
             
-            // Create new session for today
             const { data: newSession, error: createError } = await sb
                 .from('workout_sessions')
                 .insert([{ 
@@ -276,7 +590,6 @@
         
         // Get or create exercise
         async function getExercise(exerciseName) {
-            // Check if exercise exists
             const { data: existing, error: fetchError } = await sb
                 .from('exercises')
                 .select('*')
@@ -287,7 +600,6 @@
                 return existing;
             }
             
-            // Create new exercise
             const { data: newExercise, error: createError } = await sb
                 .from('exercises')
                 .insert([{ 
@@ -330,13 +642,9 @@
             }
             
             try {
-                // Get today's session
                 const session = await getTodaySession();
-                
-                // Get or create exercise
                 const exercise = await getExercise(exerciseName);
                 
-                // Count existing sets for this exercise today to determine set number
                 const { data: existingSets } = await sb
                     .from('sets')
                     .select('set_number')
@@ -349,7 +657,6 @@
                     ? existingSets[0].set_number + 1 
                     : 1;
                 
-                // Insert the set
                 const { data, error } = await sb
                     .from('sets')
                     .insert([{
@@ -362,13 +669,11 @@
                 
                 if (error) throw error;
                 
-                // Clear form
                 document.getElementById('exercise').value = '';
                 document.getElementById('reps').value = '';
                 document.getElementById('weight').value = '';
                 document.getElementById('logError').innerHTML = '';
                 
-                // Reload workouts
                 await loadExercises();
                 await loadWorkouts();
                 
@@ -383,7 +688,6 @@
             historyDiv.innerHTML = '<div class="loading">Loading...</div>';
             
             try {
-                // Get all workout sessions with their sets and exercises
                 const { data: sessions, error } = await sb
                     .from('workout_sessions')
                     .select(`
@@ -408,7 +712,6 @@
                     return;
                 }
                 
-                // Build HTML
                 let html = '';
                 sessions.forEach(session => {
                     if (session.sets && session.sets.length > 0) {
