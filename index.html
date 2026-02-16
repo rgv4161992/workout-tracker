@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Workout Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2, h3 {
+            color: #333;
+        }
+        
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        
+        .workout-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .date-group {
+            margin-bottom: 30px;
+        }
+        
+        .date-group h3 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .set-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .set-item:last-child {
+            border-bottom: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .auth-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>My Workout Tracker</h1>
+    
+    <!-- Authentication Section -->
+    <div class="auth-section" id="authSection">
+        <h2>Sign In</h2>
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="authEmail" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="authPassword" placeholder="password">
+        </div>
+        <button onclick="signUp()">Sign Up</button>
+        <button onclick="signIn()">Sign In</button>
+        <div id="authError"></div>
+    </div>
+    
+    <!-- Workout Logging Section (hidden until signed in) -->
+    <div id="appSection" style="display: none;">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span id="userEmail"></span>
+            <button onclick="signOut()">Sign Out</button>
+        </div>
+        
+        <div class="input-section">
+            <h2>Log Set</h2>
+            
+            <div class="form-group">
+                <label>Exercise:</label>
+                <input type="text" id="exercise" placeholder="e.g., Bench Press" list="exerciseList">
+                <datalist id="exerciseList"></datalist>
+            </div>
+            
+            <div class="form-group">
+                <label>Reps:</label>
+                <input type="number" id="reps" placeholder="e.g., 10">
+            </div>
+            
+            <div class="form-group">
+                <label>Weight (lbs):</label>
+                <input type="number" id="weight" placeholder="e.g., 135">
+            </div>
+            
+            <button onclick="logSet()">Log Set</button>
+            <div id="logError"></div>
+        </div>
+        
+        <div class="workout-list">
+            <h2>Workout History</h2>
+            <div id="workoutHistory" class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://lhkimegawvjifmcdqhpv.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxoa2ltZWdhd3ZqaWZtY2RxaHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5Mzk3MjMsImV4cCI6MjA4NjUxNTcyM30.iV8XRX-HRTqys6E9dyNnPR0i5A0dX3-zqh0qySbVXfU';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let currentUser = null;
+        let currentSession = null;
+        
+        // Check if user is already signed in
+        async function checkAuth() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showApp();
+            }
+        }
+        
+        // Sign up new user
+        async function signUp() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            const { data, error } = await sb.auth.signUp({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                document.getElementById('authError').innerHTML = '<div class="error">' + error.message + '</div>';
+            } else {
+                alert('Check your email for confirmation link!');
+            }
+        }
+        
+        // Sign in existing user
+        async function signIn() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            const { data, error } = await sb.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                document.getElementById('authError').innerHTML = '<div class="error">' + error.message + '</div>';
+            } else {
+                currentUser = data.user;
+                showApp();
+            }
+        }
+        
+        // Sign out
+        async function signOut() {
+            await sb.auth.signOut();
+            currentUser = null;
+            currentSession = null;
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('appSection').style.display = 'none';
+        }
+        
+        // Show app after successful auth
+        function showApp() {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('appSection').style.display = 'block';
+            document.getElementById('userEmail').textContent = currentUser.email;
+            loadExercises();
+            loadWorkouts();
+        }
+        
+        // Get or create today's workout session
+        async function getTodaySession() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Check if session exists for today
+            const { data: existing, error: fetchError } = await sb
+                .from('workout_sessions')
+                .select('*')
+                .eq('date', today)
+                .single();
+            
+            if (existing) {
+                return existing;
+            }
+            
+            // Create new session for today
+            const { data: newSession, error: createError } = await sb
+                .from('workout_sessions')
+                .insert([{ 
+                    user_id: currentUser.id,
+                    date: today 
+                }])
+                .select()
+                .single();
+            
+            return newSession;
+        }
+        
+        // Get or create exercise
+        async function getExercise(exerciseName) {
+            // Check if exercise exists
+            const { data: existing, error: fetchError } = await sb
+                .from('exercises')
+                .select('*')
+                .eq('name', exerciseName)
+                .single();
+            
+            if (existing) {
+                return existing;
+            }
+            
+            // Create new exercise
+            const { data: newExercise, error: createError } = await sb
+                .from('exercises')
+                .insert([{ 
+                    user_id: currentUser.id,
+                    name: exerciseName 
+                }])
+                .select()
+                .single();
+            
+            return newExercise;
+        }
+        
+        // Load exercise list for autocomplete
+        async function loadExercises() {
+            const { data, error } = await sb
+                .from('exercises')
+                .select('name')
+                .order('name');
+            
+            if (data) {
+                const datalist = document.getElementById('exerciseList');
+                datalist.innerHTML = '';
+                data.forEach(ex => {
+                    const option = document.createElement('option');
+                    option.value = ex.name;
+                    datalist.appendChild(option);
+                });
+            }
+        }
+        
+        // Log a set
+        async function logSet() {
+            const exerciseName = document.getElementById('exercise').value;
+            const reps = document.getElementById('reps').value;
+            const weight = document.getElementById('weight').value;
+            
+            if (!exerciseName || !reps || !weight) {
+                document.getElementById('logError').innerHTML = '<div class="error">Please fill in all fields</div>';
+                return;
+            }
+            
+            try {
+                // Get today's session
+                const session = await getTodaySession();
+                
+                // Get or create exercise
+                const exercise = await getExercise(exerciseName);
+                
+                // Count existing sets for this exercise today to determine set number
+                const { data: existingSets } = await sb
+                    .from('sets')
+                    .select('set_number')
+                    .eq('workout_session_id', session.id)
+                    .eq('exercise_id', exercise.id)
+                    .order('set_number', { ascending: false })
+                    .limit(1);
+                
+                const setNumber = existingSets && existingSets.length > 0 
+                    ? existingSets[0].set_number + 1 
+                    : 1;
+                
+                // Insert the set
+                const { data, error } = await sb
+                    .from('sets')
+                    .insert([{
+                        workout_session_id: session.id,
+                        exercise_id: exercise.id,
+                        reps: parseInt(reps),
+                        weight: parseFloat(weight),
+                        set_number: setNumber
+                    }]);
+                
+                if (error) throw error;
+                
+                // Clear form
+                document.getElementById('exercise').value = '';
+                document.getElementById('reps').value = '';
+                document.getElementById('weight').value = '';
+                document.getElementById('logError').innerHTML = '';
+                
+                // Reload workouts
+                await loadExercises();
+                await loadWorkouts();
+                
+            } catch (error) {
+                document.getElementById('logError').innerHTML = '<div class="error">' + error.message + '</div>';
+            }
+        }
+        
+        // Load and display workouts
+        async function loadWorkouts() {
+            const historyDiv = document.getElementById('workoutHistory');
+            historyDiv.innerHTML = '<div class="loading">Loading...</div>';
+            
+            try {
+                // Get all workout sessions with their sets and exercises
+                const { data: sessions, error } = await sb
+                    .from('workout_sessions')
+                    .select(`
+                        id,
+                        date,
+                        sets (
+                            id,
+                            reps,
+                            weight,
+                            set_number,
+                            exercises (
+                                name
+                            )
+                        )
+                    `)
+                    .order('date', { ascending: false });
+                
+                if (error) throw error;
+                
+                if (!sessions || sessions.length === 0) {
+                    historyDiv.innerHTML = '<p>No workouts logged yet. Start lifting!</p>';
+                    return;
+                }
+                
+                // Build HTML
+                let html = '';
+                sessions.forEach(session => {
+                    if (session.sets && session.sets.length > 0) {
+                        html += '<div class="date-group">';
+                        html += '<h3>' + new Date(session.date).toLocaleDateString() + '</h3>';
+                        
+                        session.sets.forEach(set => {
+                            html += '<div class="set-item">';
+                            html += '<div>';
+                            html += '<strong>' + set.exercises.name + '</strong> ';
+                            html += 'Set ' + set.set_number + ': ';
+                            html += set.reps + ' reps @ ' + set.weight + ' lbs';
+                            html += '</div>';
+                            html += '<button class="delete-btn" onclick="deleteSet(\'' + set.id + '\')">Delete</button>';
+                            html += '</div>';
+                        });
+                        
+                        html += '</div>';
+                    }
+                });
+                
+                historyDiv.innerHTML = html;
+                
+            } catch (error) {
+                historyDiv.innerHTML = '<div class="error">Error loading workouts: ' + error.message + '</div>';
+            }
+        }
+        
+        // Delete a set
+        async function deleteSet(setId) {
+            if (!confirm('Delete this set?')) return;
+            
+            const { error } = await sb
+                .from('sets')
+                .delete()
+                .eq('id', setId);
+            
+            if (error) {
+                alert('Error deleting set: ' + error.message);
+            } else {
+                loadWorkouts();
+            }
+        }
+        
+        // Initialize app
+        checkAuth();
+    </script>
+</body>
+</html>
