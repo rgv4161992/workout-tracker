@@ -3,10 +3,11 @@
 <head>
     <title>Workout Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 50px auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -230,6 +231,104 @@
             border-color: #007bff;
             background-color: #e7f3ff;
         }
+        
+        /* Analytics Dashboard Styles */
+        .analytics-dashboard {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        
+        .stat-card .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card .stat-change {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .stat-card .stat-change.positive {
+            color: #28a745;
+        }
+        
+        .stat-card .stat-change.negative {
+            color: #dc3545;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container canvas {
+            max-height: 300px;
+        }
+        
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            margin-bottom: -2px;
+        }
+        
+        .tab:hover {
+            color: #007bff;
+        }
+        
+        .tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -258,99 +357,186 @@
             <button onclick="signOut()">Sign Out</button>
         </div>
         
-        <!-- Daily Check-In Section -->
-        <div class="input-section" id="checkInSection" style="display: none;">
-            <h2>Daily Check-In - <span id="checkInDate"></span></h2>
-            
-            <div class="form-group">
-                <label>Oura Readiness Score (0-100):</label>
-                <input type="number" id="ouraReadiness" min="0" max="100" placeholder="85">
-                <small style="color: #666;">Check your Oura app for today's readiness score</small>
+        <!-- Tabs -->
+        <div class="tab-container">
+            <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
+            <button class="tab" onclick="showTab('analytics')">Analytics</button>
+            <button class="tab" onclick="showTab('history')">History</button>
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="tab-content active">
+            <!-- Daily Check-In Section -->
+            <div class="input-section" id="checkInSection" style="display: none;">
+                <h2>Daily Check-In - <span id="checkInDate"></span></h2>
+                
+                <div class="form-group">
+                    <label>Oura Readiness Score (0-100):</label>
+                    <input type="number" id="ouraReadiness" min="0" max="100" placeholder="85">
+                    <small style="color: #666;">Check your Oura app for today's readiness score</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>How sore are you today?</label>
+                    <div class="soreness-scale">
+                        <label class="soreness-option">
+                            <input type="radio" name="soreness" value="0">
+                            <span><strong>0 - Cripplingly sore</strong> (can barely move)</span>
+                        </label>
+                        <label class="soreness-option">
+                            <input type="radio" name="soreness" value="25">
+                            <span><strong>25 - Very sore</strong> (hard to do daily tasks)</span>
+                        </label>
+                        <label class="soreness-option">
+                            <input type="radio" name="soreness" value="50">
+                            <span><strong>50 - Moderately sore</strong> (noticeable but manageable)</span>
+                        </label>
+                        <label class="soreness-option">
+                            <input type="radio" name="soreness" value="75">
+                            <span><strong>75 - Slightly sore</strong> (barely there)</span>
+                        </label>
+                        <label class="soreness-option">
+                            <input type="radio" name="soreness" value="100">
+                            <span><strong>100 - Feel great</strong> (no soreness at all)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <button onclick="submitCheckIn()">Submit Check-In</button>
+                <div id="checkInError"></div>
             </div>
             
-            <div class="form-group">
-                <label>How sore are you today?</label>
-                <div class="soreness-scale">
-                    <label class="soreness-option">
-                        <input type="radio" name="soreness" value="0">
-                        <span><strong>0 - Cripplingly sore</strong> (can barely move)</span>
-                    </label>
-                    <label class="soreness-option">
-                        <input type="radio" name="soreness" value="25">
-                        <span><strong>25 - Very sore</strong> (hard to do daily tasks)</span>
-                    </label>
-                    <label class="soreness-option">
-                        <input type="radio" name="soreness" value="50">
-                        <span><strong>50 - Moderately sore</strong> (noticeable but manageable)</span>
-                    </label>
-                    <label class="soreness-option">
-                        <input type="radio" name="soreness" value="75">
-                        <span><strong>75 - Slightly sore</strong> (barely there)</span>
-                    </label>
-                    <label class="soreness-option">
-                        <input type="radio" name="soreness" value="100">
-                        <span><strong>100 - Feel great</strong> (no soreness at all)</span>
-                    </label>
+            <!-- Recovery Dashboard -->
+            <div class="recovery-dashboard" id="recoveryDashboard" style="display: none;">
+                <div class="recovery-status" id="recoveryStatus">
+                    <h2 id="recoveryStatusText">Recovery Status</h2>
+                    <div class="recovery-score" id="recoveryScoreDisplay">--</div>
+                    <p>Recovery Score</p>
+                </div>
+                
+                <div class="recovery-details">
+                    <div class="recovery-metric">
+                        <div class="value" id="ouraDisplay">--</div>
+                        <div class="label">Oura Readiness</div>
+                    </div>
+                    <div class="recovery-metric">
+                        <div class="value" id="sorenessDisplay">--</div>
+                        <div class="label">Soreness Score</div>
+                    </div>
+                </div>
+                
+                <div class="recommendations" id="recommendations">
+                    <h3>Training Recommendations</h3>
+                    <ul id="recommendationsList"></ul>
                 </div>
             </div>
             
-            <button onclick="submitCheckIn()">Submit Check-In</button>
-            <div id="checkInError"></div>
-        </div>
-        
-        <!-- Recovery Dashboard -->
-        <div class="recovery-dashboard" id="recoveryDashboard" style="display: none;">
-            <div class="recovery-status" id="recoveryStatus">
-                <h2 id="recoveryStatusText">Recovery Status</h2>
-                <div class="recovery-score" id="recoveryScoreDisplay">--</div>
-                <p>Recovery Score</p>
-            </div>
-            
-            <div class="recovery-details">
-                <div class="recovery-metric">
-                    <div class="value" id="ouraDisplay">--</div>
-                    <div class="label">Oura Readiness</div>
+            <!-- Workout Logging Section -->
+            <div class="input-section">
+                <h2>Log Set</h2>
+                
+                <div class="form-group">
+                    <label>Exercise:</label>
+                    <input type="text" id="exercise" placeholder="e.g., Bench Press" list="exerciseList">
+                    <datalist id="exerciseList"></datalist>
                 </div>
-                <div class="recovery-metric">
-                    <div class="value" id="sorenessDisplay">--</div>
-                    <div class="label">Soreness Score</div>
+                
+                <div class="form-group">
+                    <label>Reps:</label>
+                    <input type="number" id="reps" placeholder="e.g., 10">
+                </div>
+                
+                <div class="form-group">
+                    <label>Weight (lbs):</label>
+                    <input type="number" id="weight" placeholder="e.g., 135">
+                </div>
+                
+                <button onclick="logSet()">Log Set</button>
+                <div id="logError"></div>
+            </div>
+        </div>
+        
+        <!-- Analytics Tab -->
+        <div id="analyticsTab" class="tab-content">
+            <div class="analytics-dashboard">
+                <h2>Recovery Analytics</h2>
+                
+                <!-- Recovery Stats -->
+                <div class="analytics-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Current Recovery</div>
+                        <div class="stat-value" id="currentRecovery">--</div>
+                        <div class="stat-change" id="recoveryChange"></div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">7-Day Average</div>
+                        <div class="stat-value" id="weekAvgRecovery">--</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">30-Day Average</div>
+                        <div class="stat-value" id="monthAvgRecovery">--</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Days Checked In</div>
+                        <div class="stat-value" id="checkinStreak">--</div>
+                    </div>
+                </div>
+                
+                <!-- Recovery Trend Chart -->
+                <div class="chart-container">
+                    <h3>Recovery Score Trend (Last 30 Days)</h3>
+                    <canvas id="recoveryChart"></canvas>
+                </div>
+                
+                <h2 style="margin-top: 40px;">Training Analytics</h2>
+                
+                <!-- Training Stats -->
+                <div class="analytics-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">This Week's Volume</div>
+                        <div class="stat-value" id="weekVolume">--</div>
+                        <div class="stat-change" id="volumeChange"></div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Workouts This Week</div>
+                        <div class="stat-value" id="weekWorkouts">--</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Total Sets This Week</div>
+                        <div class="stat-value" id="weekSets">--</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">All-Time PRs</div>
+                        <div class="stat-value" id="totalPRs">--</div>
+                    </div>
+                </div>
+                
+                <!-- Volume Trend Chart -->
+                <div class="chart-container">
+                    <h3>Weekly Volume Trend (Last 8 Weeks)</h3>
+                    <canvas id="volumeChart"></canvas>
+                </div>
+                
+                <!-- Personal Records -->
+                <div class="input-section">
+                    <h3>Personal Records</h3>
+                    <div id="prList" class="loading">Loading...</div>
                 </div>
             </div>
-            
-            <div class="recommendations" id="recommendations">
-                <h3>Training Recommendations</h3>
-                <ul id="recommendationsList"></ul>
-            </div>
         </div>
         
-        <!-- Workout Logging Section -->
-        <div class="input-section">
-            <h2>Log Set</h2>
-            
-            <div class="form-group">
-                <label>Exercise:</label>
-                <input type="text" id="exercise" placeholder="e.g., Bench Press" list="exerciseList">
-                <datalist id="exerciseList"></datalist>
+        <!-- History Tab -->
+        <div id="historyTab" class="tab-content">
+            <div class="workout-list">
+                <h2>Workout History</h2>
+                <div id="workoutHistory" class="loading">Loading...</div>
             </div>
-            
-            <div class="form-group">
-                <label>Reps:</label>
-                <input type="number" id="reps" placeholder="e.g., 10">
-            </div>
-            
-            <div class="form-group">
-                <label>Weight (lbs):</label>
-                <input type="number" id="weight" placeholder="e.g., 135">
-            </div>
-            
-            <button onclick="logSet()">Log Set</button>
-            <div id="logError"></div>
-        </div>
-        
-        <!-- Workout History -->
-        <div class="workout-list">
-            <h2>Workout History</h2>
-            <div id="workoutHistory" class="loading">Loading...</div>
         </div>
     </div>
 
@@ -362,6 +548,28 @@
         
         let currentUser = null;
         let todayCheckIn = null;
+        let recoveryChart = null;
+        let volumeChart = null;
+        
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load analytics if switching to analytics tab
+            if (tabName === 'analytics') {
+                loadAnalytics();
+            }
+        }
         
         // Check if user is already signed in
         async function checkAuth() {
@@ -438,11 +646,9 @@
                 .single();
             
             if (data) {
-                // Already checked in today
                 todayCheckIn = data;
                 displayRecoveryDashboard(data);
             } else {
-                // Need to check in
                 showCheckInForm();
             }
         }
@@ -459,7 +665,6 @@
             document.getElementById('checkInSection').style.display = 'block';
             document.getElementById('recoveryDashboard').style.display = 'none';
             
-            // Add click handlers for soreness options
             document.querySelectorAll('.soreness-option').forEach(option => {
                 option.addEventListener('click', function() {
                     document.querySelectorAll('.soreness-option').forEach(o => o.classList.remove('selected'));
@@ -510,12 +715,10 @@
             const status = document.getElementById('recoveryStatus');
             const score = Math.round(checkIn.recovery_score);
             
-            // Set recovery score
             document.getElementById('recoveryScoreDisplay').textContent = score;
             document.getElementById('ouraDisplay').textContent = checkIn.oura_readiness;
             document.getElementById('sorenessDisplay').textContent = checkIn.soreness_score;
             
-            // Determine status color and recommendations
             let statusClass, statusText, recommendations;
             
             if (score >= 80) {
@@ -547,7 +750,6 @@
                 ];
             }
             
-            // Update UI
             status.className = 'recovery-status ' + statusClass;
             document.getElementById('recoveryStatusText').textContent = statusText;
             
@@ -560,6 +762,339 @@
             });
             
             dashboard.style.display = 'block';
+        }
+        
+        // Load analytics
+        async function loadAnalytics() {
+            await loadRecoveryAnalytics();
+            await loadTrainingAnalytics();
+        }
+        
+        // Load recovery analytics
+        async function loadRecoveryAnalytics() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            
+            // Get all check-ins from last 30 days
+            const { data: checkins, error } = await sb
+                .from('daily_checkins')
+                .select('*')
+                .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+                .order('date', { ascending: true });
+            
+            if (!checkins || checkins.length === 0) {
+                document.getElementById('currentRecovery').textContent = '--';
+                document.getElementById('weekAvgRecovery').textContent = '--';
+                document.getElementById('monthAvgRecovery').textContent = '--';
+                document.getElementById('checkinStreak').textContent = '0';
+                return;
+            }
+            
+            // Current recovery (today's check-in)
+            const todayCheckin = checkins.find(c => c.date === today.toISOString().split('T')[0]);
+            if (todayCheckin) {
+                document.getElementById('currentRecovery').textContent = Math.round(todayCheckin.recovery_score);
+                
+                // Compare to yesterday
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayCheckin = checkins.find(c => c.date === yesterday.toISOString().split('T')[0]);
+                if (yesterdayCheckin) {
+                    const change = todayCheckin.recovery_score - yesterdayCheckin.recovery_score;
+                    const changeText = (change > 0 ? '+' : '') + Math.round(change) + ' from yesterday';
+                    const changeEl = document.getElementById('recoveryChange');
+                    changeEl.textContent = changeText;
+                    changeEl.className = 'stat-change ' + (change >= 0 ? 'positive' : 'negative');
+                }
+            } else {
+                document.getElementById('currentRecovery').textContent = '--';
+            }
+            
+            // 7-day average
+            const last7Days = checkins.filter(c => new Date(c.date) >= sevenDaysAgo);
+            if (last7Days.length > 0) {
+                const avg7 = last7Days.reduce((sum, c) => sum + c.recovery_score, 0) / last7Days.length;
+                document.getElementById('weekAvgRecovery').textContent = Math.round(avg7);
+            }
+            
+            // 30-day average
+            const avg30 = checkins.reduce((sum, c) => sum + c.recovery_score, 0) / checkins.length;
+            document.getElementById('monthAvgRecovery').textContent = Math.round(avg30);
+            
+            // Check-in streak
+            document.getElementById('checkinStreak').textContent = checkins.length;
+            
+            // Draw recovery chart
+            drawRecoveryChart(checkins);
+        }
+        
+        // Draw recovery chart
+        function drawRecoveryChart(checkins) {
+            const ctx = document.getElementById('recoveryChart').getContext('2d');
+            
+            if (recoveryChart) {
+                recoveryChart.destroy();
+            }
+            
+            const labels = checkins.map(c => new Date(c.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const data = checkins.map(c => c.recovery_score);
+            
+            recoveryChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Recovery Score',
+                        data: data,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load training analytics
+        async function loadTrainingAnalytics() {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            const startOfLastWeek = new Date(startOfWeek);
+            startOfLastWeek.setDate(startOfWeek.getDate() - 7);
+            
+            // Get this week's sessions and sets
+            const { data: thisWeekSessions, error: weekError } = await sb
+                .from('workout_sessions')
+                .select(`
+                    id,
+                    date,
+                    sets (
+                        reps,
+                        weight,
+                        set_number
+                    )
+                `)
+                .gte('date', startOfWeek.toISOString().split('T')[0])
+                .order('date', { ascending: false });
+            
+            if (thisWeekSessions && thisWeekSessions.length > 0) {
+                // Calculate this week's volume
+                let weekVolume = 0;
+                let weekSets = 0;
+                thisWeekSessions.forEach(session => {
+                    if (session.sets) {
+                        session.sets.forEach(set => {
+                            weekVolume += set.reps * set.weight;
+                            weekSets++;
+                        });
+                    }
+                });
+                
+                document.getElementById('weekVolume').textContent = weekVolume.toLocaleString() + ' lbs';
+                document.getElementById('weekWorkouts').textContent = thisWeekSessions.length;
+                document.getElementById('weekSets').textContent = weekSets;
+                
+                // Get last week's volume for comparison
+                const { data: lastWeekSessions } = await sb
+                    .from('workout_sessions')
+                    .select(`
+                        sets (
+                            reps,
+                            weight
+                        )
+                    `)
+                    .gte('date', startOfLastWeek.toISOString().split('T')[0])
+                    .lt('date', startOfWeek.toISOString().split('T')[0]);
+                
+                if (lastWeekSessions && lastWeekSessions.length > 0) {
+                    let lastWeekVolume = 0;
+                    lastWeekSessions.forEach(session => {
+                        if (session.sets) {
+                            session.sets.forEach(set => {
+                                lastWeekVolume += set.reps * set.weight;
+                            });
+                        }
+                    });
+                    
+                    const volumeChange = weekVolume - lastWeekVolume;
+                    const volumeChangePercent = lastWeekVolume > 0 ? Math.round((volumeChange / lastWeekVolume) * 100) : 0;
+                    const changeText = (volumeChange > 0 ? '+' : '') + volumeChangePercent + '% from last week';
+                    const changeEl = document.getElementById('volumeChange');
+                    changeEl.textContent = changeText;
+                    changeEl.className = 'stat-change ' + (volumeChange >= 0 ? 'positive' : 'negative');
+                }
+            } else {
+                document.getElementById('weekVolume').textContent = '0 lbs';
+                document.getElementById('weekWorkouts').textContent = '0';
+                document.getElementById('weekSets').textContent = '0';
+            }
+            
+            // Load PRs
+            await loadPRs();
+            
+            // Load volume chart (last 8 weeks)
+            await loadVolumeChart();
+        }
+        
+        // Load PRs
+        async function loadPRs() {
+            const { data: sets, error } = await sb
+                .from('sets')
+                .select(`
+                    weight,
+                    reps,
+                    workout_sessions (
+                        date
+                    ),
+                    exercises (
+                        name
+                    )
+                `)
+                .order('weight', { ascending: false });
+            
+            if (!sets || sets.length === 0) {
+                document.getElementById('prList').innerHTML = '<p>No workouts logged yet.</p>';
+                document.getElementById('totalPRs').textContent = '0';
+                return;
+            }
+            
+            // Group by exercise and find max weight
+            const prsByExercise = {};
+            sets.forEach(set => {
+                const exerciseName = set.exercises.name;
+                if (!prsByExercise[exerciseName] || set.weight > prsByExercise[exerciseName].weight) {
+                    prsByExercise[exerciseName] = {
+                        weight: set.weight,
+                        reps: set.reps,
+                        date: set.workout_sessions.date
+                    };
+                }
+            });
+            
+            // Display PRs
+            let prHtml = '<div class="analytics-grid">';
+            Object.keys(prsByExercise).forEach(exercise => {
+                const pr = prsByExercise[exercise];
+                prHtml += `
+                    <div class="stat-card">
+                        <div class="stat-label">${exercise}</div>
+                        <div class="stat-value">${pr.weight} lbs</div>
+                        <div class="stat-change">${pr.reps} reps • ${new Date(pr.date).toLocaleDateString()}</div>
+                    </div>
+                `;
+            });
+            prHtml += '</div>';
+            
+            document.getElementById('prList').innerHTML = prHtml;
+            document.getElementById('totalPRs').textContent = Object.keys(prsByExercise).length;
+        }
+        
+        // Load volume chart (last 8 weeks)
+        async function loadVolumeChart() {
+            const today = new Date();
+            const eightWeeksAgo = new Date(today);
+            eightWeeksAgo.setDate(today.getDate() - 56); // 8 weeks
+            
+            const { data: sessions, error } = await sb
+                .from('workout_sessions')
+                .select(`
+                    date,
+                    sets (
+                        reps,
+                        weight
+                    )
+                `)
+                .gte('date', eightWeeksAgo.toISOString().split('T')[0])
+                .order('date', { ascending: true });
+            
+            if (!sessions || sessions.length === 0) {
+                return;
+            }
+            
+            // Group by week
+            const weeklyVolume = {};
+            sessions.forEach(session => {
+                const date = new Date(session.date);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                const weekKey = weekStart.toISOString().split('T')[0];
+                
+                if (!weeklyVolume[weekKey]) {
+                    weeklyVolume[weekKey] = 0;
+                }
+                
+                if (session.sets) {
+                    session.sets.forEach(set => {
+                        weeklyVolume[weekKey] += set.reps * set.weight;
+                    });
+                }
+            });
+            
+            const labels = Object.keys(weeklyVolume).map(date => 
+                new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            );
+            const data = Object.values(weeklyVolume);
+            
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            
+            if (volumeChart) {
+                volumeChart.destroy();
+            }
+            
+            volumeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Weekly Volume (lbs)',
+                        data: data,
+                        backgroundColor: '#007bff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
         
         // Get or create today's workout session
